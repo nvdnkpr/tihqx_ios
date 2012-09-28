@@ -26,6 +26,16 @@ static int bytesPerPixel = 4;
 static int bitsPerComponent = 8;
 static int factor = 2;
 
+-(CGFloat)contentWidthForWidth:(CGFloat)suggestedWidth
+{
+    return w;
+}
+
+-(CGFloat)contentHeightForWidth:(CGFloat)width_
+{
+    return h;
+}
+
 #pragma Public APIs
 
 -(void)dealloc
@@ -35,55 +45,68 @@ static int factor = 2;
     [super dealloc];
 }
 
+-(void)makeImage:(UIImage*)sourceImage
+{
+    // 1st get data from source image
+    CGImageRef imageRef = [sourceImage CGImage];
+    w = CGImageGetWidth(imageRef);
+    h = CGImageGetHeight(imageRef);
+    
+    if ([[UIScreen mainScreen] scale] == factor) {
+        CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
+        int bytesPerRow = bytesPerPixel * w;
+        
+        // reserve memory (uint32_t = 4 bytes)
+        uint32_t* src = (uint32_t*) calloc(w * h * bytesPerPixel, sizeof(uint32_t));
+        uint32_t* dst = (uint32_t*) calloc(w * h * bytesPerPixel * factor, sizeof(uint32_t));
+        
+        CGContextRef srcContext = CGBitmapContextCreate(src,
+                                                        w, h,
+                                                        bitsPerComponent, bytesPerRow, colorSpace,
+                                                        kCGImageAlphaPremultipliedLast | kCGBitmapByteOrder32Big);
+        CGContextDrawImage(srcContext, CGRectMake(0, 0, w, h), imageRef);
+        
+        // upscale
+        hq2x_32(src, dst, w, h);
+        
+        // make new image with raw data
+        CGContextRef dstContext = CGBitmapContextCreate(dst,
+                                                        w * factor, h * factor,
+                                                        bitsPerComponent, bytesPerRow * factor, colorSpace,
+                                                        kCGImageAlphaPremultipliedLast | kCGBitmapByteOrderDefault);
+        CGImageRef dstCgImage = CGBitmapContextCreateImage(dstContext);
+        
+        // create normal view stuff
+        image = [[UIImageView alloc] initWithImage:[UIImage imageWithCGImage:dstCgImage scale:2.0f orientation:0]];
+        
+        // free up memory
+        free(src); free(dst);
+        CGContextRelease(dstContext); CGContextRelease(srcContext);
+        CGColorSpaceRelease(colorSpace);
+        CGImageRelease(dstCgImage);
+    }
+    else {
+        image = [[UIImageView alloc] initWithImage:sourceImage];
+    }
+    [self addSubview:image];
+    [(TiViewProxy*)[self proxy] contentsWillChange]; // not sure if this is necessary
+}
+
 -(void)setImage_:(id)arg
 {
     if (image == nil) {
         NSString* source = [TiUtils stringValue:[[self proxy] valueForKey:@"image"]];
-        
-        // 1st get data from source image
         UIImage* sourceImage = [UIImage imageNamed:source];
-        CGImageRef imageRef = [sourceImage CGImage];
-        int w = CGImageGetWidth(imageRef);
-        int h = CGImageGetHeight(imageRef);
-        
-        if ([[UIScreen mainScreen] scale] == factor) {
-            CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
-            int bytesPerRow = bytesPerPixel * w;
-            
-            // reserve memory (uint32_t = 4 bytes)
-            uint32_t* src = (uint32_t*) calloc(w * h * bytesPerPixel, sizeof(uint32_t));
-            uint32_t* dst = (uint32_t*) calloc(w * h * bytesPerPixel * factor, sizeof(uint32_t));
-            
-            CGContextRef srcContext = CGBitmapContextCreate(src,
-                                                            w, h,
-                                                            bitsPerComponent, bytesPerRow, colorSpace,
-                                                            kCGImageAlphaPremultipliedLast | kCGBitmapByteOrder32Big);
-            CGContextDrawImage(srcContext, CGRectMake(0, 0, w, h), imageRef);
-            
-            // upscale
-            hq2x_32(src, dst, w, h);
-            
-            // make new image with raw data
-            CGContextRef dstContext = CGBitmapContextCreate(dst,
-                                                            w * factor, h * factor,
-                                                            bitsPerComponent, bytesPerRow * factor, colorSpace,
-                                                            kCGImageAlphaPremultipliedLast | kCGBitmapByteOrderDefault);
-            CGImageRef dstCgImage = CGBitmapContextCreateImage(dstContext);
-            
-            // create normal view stuff
-            image = [[UIImageView alloc] initWithImage:[UIImage imageWithCGImage:dstCgImage scale:2.0f orientation:0]];
-            
-            // free up memory
-            free(src); free(dst);
-            CGContextRelease(dstContext); CGContextRelease(srcContext);
-            CGColorSpaceRelease(colorSpace);
-            CGImageRelease(dstCgImage);
-        }
-        else {
-            image = [[UIImageView alloc] initWithImage:sourceImage];
-        }
-        [self addSubview:image];
-        [(TiViewProxy*)[self proxy] contentsWillChange]; // not sure if this is necessary
+        [self makeImage:sourceImage];
+    }
+}
+
+-(void)setBase64_:(id)arg
+{
+    if (image == nil) {
+        NSString* base64 = [TiUtils stringValue:[[self proxy] valueForKey:@"base64"]];
+        UIImage* sourceImage = [UIImage imageWithData:[NSData dataWithContentsOfURL:[NSURL URLWithString:base64]]];
+        [self makeImage:sourceImage];
     }
 }
 

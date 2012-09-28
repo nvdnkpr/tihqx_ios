@@ -7,10 +7,22 @@ This is a module I made for a personal project that had to download and show rem
 Just:
 
 ```js
+var window = Ti.UI.createWindow({
+	backgroundColor: 'red'
+});
+
 var image = require('net.iamyellow.tihqx').createView({
 	top: 0, left: 0,
 	image: 'hqx_orig.png'
+}),
+image2 = require('net.iamyellow.tihqx').createView({
+	top: 0, right: 0,
+	base64: 'data:;base64,BASE64_ENCODED_STRING' // use a base64 string, instead
 });
+window.add(image);
+window.add(image2);
+
+window.open();
 ```
 
 ## Author

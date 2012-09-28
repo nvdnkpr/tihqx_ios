@@ -18,6 +18,7 @@
 
 @interface NetIamyellowTihqxView : TiUIView {
     UIImageView* image;
+    CGFloat w, h;
 }
 
 @end

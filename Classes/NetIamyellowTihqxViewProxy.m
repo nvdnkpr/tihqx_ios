@@ -19,6 +19,10 @@
 
 @implementation NetIamyellowTihqxViewProxy
 
+USE_VIEW_FOR_CONTENT_WIDTH
+
+USE_VIEW_FOR_CONTENT_HEIGHT
+
 
 -(TiDimension)defaultAutoWidthBehavior:(id)unused
 {

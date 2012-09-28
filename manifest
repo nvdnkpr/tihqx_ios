@@ -1,0 +1,18 @@
+#
+# this is your module manifest and used by Titanium
+# during compilation, packaging, distribution, etc.
+#
+version: 0.1
+apiversion: 2
+description: Upscale images for retina display using hq2x algorithm
+author: jordi domenech
+license: Apache License, Version 2.0
+copyright: Copyright (c) 2012 by jordi domenech <jordi@iamyellow.net>
+
+
+# these should not be edited
+name: tihqx
+moduleid: net.iamyellow.tihqx
+guid: 5cb08011-5443-495c-8bb6-84781d2bfacc
+platform: iphone
+minsdk: 2.1.3
